@@ -23,7 +23,7 @@ def v_spacer(height, sb=False) -> None:
 ############### Custom Functions Ends ###############
 
 
-st.set_page_config(page_title="Election Party Candidate Analysis",
+st.set_page_config(page_title="Political Parties Candidate Analysis",
                     layout='wide',
                     initial_sidebar_state="expanded")
 
@@ -45,11 +45,11 @@ df = get_data()
 
 ############################## CREATING HEADER ##############################
 
-header_left,header_mid,header_right = st.columns([1,6,1],gap = "large")
+header_left,header_mid,header_right = st.columns([1,8,1],gap = "small")
 
 with header_mid:
     # https://docs.streamlit.io/library/get-started/create-an-app
-    st.title("Party Criminal Records Analysis")
+    st.title("Political Parties Criminal Records Analysis")
 
 ############################## HEADER DONE ##############################
 
@@ -167,7 +167,7 @@ with plt_box_1:
 with plt_box_2:
     v_spacer(7)
 
-    st.write(f"*This Plot* demostrates the total number of criminal cases by each party from the  \
+    st.write(f"*This Plot* demostrates the total number of criminal cases on the candidates of each party from the  \
             respective state of {State_Selected} in election year {Year_Selected} with maximum number of criminal cases at the top and lowest  \
             at the bottom. It considers top 18 Political Parties only.")
 
