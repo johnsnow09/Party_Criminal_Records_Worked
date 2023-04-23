@@ -281,16 +281,17 @@ with plt3_box_2:
                                         )
 
     st.plotly_chart(fig_cases_count_party_facet,use_container_width=True)
-    
 
-Asset_1,Asset_2,Asset_3 = st.columns([1,6,1],gap = "small")
+st.markdown("""---""")    
 
-with Asset_2:
-    st.markdown("""<style>.big-font {
-    font-size:30px !important;}
-    </style>
-    """, unsafe_allow_html=True)
-    st.markdown('<p class="big-font">Sum of Total Asset of Candidates from each Party</p>', unsafe_allow_html=True)
+# Asset_1,Asset_2,Asset_3 = st.columns([1,6,1],gap = "small")
+
+# with Asset_2:
+st.markdown("""<style>.big-font {
+font-size:38px !important;}
+</style>
+""", unsafe_allow_html=True)
+st.markdown('<p class="big-font">Sum of Total Asset of Candidates from each Party</p>', unsafe_allow_html=True)
 
 
 fig_party_asset_sum = px.bar(df_selected.groupby(['Party']
@@ -300,7 +301,7 @@ fig_party_asset_sum = px.bar(df_selected.groupby(['Party']
                             orientation='h',
                             x='Total_Assets',y='Party', color="Party",
                             labels={
-                                    "Total_Assets": "Total Assets",
+                                    "Total_Assets": "Total Assets (in Rs.)",
                                     "Party": "Political Parties"
                                 },
                         
