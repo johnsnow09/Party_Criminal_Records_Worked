@@ -230,3 +230,31 @@ fig_cases_count_party_facet.update_layout(title_font_size=16, height = 600,
                                     )
 
 st.plotly_chart(fig_cases_count_party_facet,use_container_width=True)
+
+
+st.markdown("""---""")
+
+############### Custom Functions      ###############
+
+# from: https://discuss.streamlit.io/t/how-to-add-extra-lines-space/2220/7
+def v_spacer(height, sb=False) -> None:
+    for _ in range(height):
+        if sb:
+            st.sidebar.write('\n')
+        else:
+            st.write('\n')
+
+############### Custom Functions Ends ###############
+
+
+v_spacer(10)
+
+
+_1,box_left,_2 = st.columns([1,4,1],gap = "small")
+
+with box_left:
+    st.write("*Disclaimer:* - Purpose of this app is **educational** only and to demonstrate the use of **Python & Polars**  \n   \
+             \n This app uses very small portion of data from myneta.info and aggregates it using **Polars Python** to handle **data processing** efficiently.   \n \
+             \n Data used in this **Web App** is from https://myneta.info/ which is maintained by **ADR**. \
+               \n Would request the viewers to visit https://myneta.info/ for more details and original content.  \
+            ")
