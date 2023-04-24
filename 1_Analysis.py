@@ -66,15 +66,19 @@ with st.sidebar:
     # State_List = df.lazy().select(pl.col('State')).unique().collect().to_series().to_list()
     State_List = df.collect().to_pandas()["State"].unique().tolist()
 
-    # State_Selected = st.selectbox(label="Select State",
-    #                               options = State_List)
+    State_Selected = st.selectbox(label="Select State",
+                                  options = State_List,
+                                  index=1)
+    
+    State_Selected = [State_Selected]
+    # st.write(State_Selected)
 
-    State_Selected = st.multiselect(label="Select State",
-                                    options = State_List,
-                                    default = ["Delhi"], # Uttar Pradesh West Bengal  
-                                    # default = State_List[-1],
-                                    max_selections=1
-                                       )
+    # State_Selected = st.multiselect(label="Select State",
+    #                                 options = State_List,
+    #                                 default = ["Delhi"], # Uttar Pradesh West Bengal  
+    #                                 # default = State_List[-1],
+    #                                 max_selections=1
+    #                                    )
     
 ############################## FIRST FILTER STATE DONE ##############################
 
@@ -133,6 +137,7 @@ highest_criminal_parties = df_selected.groupby(['Party']
                                 ).sort(by='Criminal_Case',descending=True)
 
 highest_criminal_party = highest_criminal_parties.select(pl.col('Party')).head(1).to_series().to_list()
+# highest_criminal_party6 = highest_criminal_parties.select(pl.col('Party')).head(6).to_series().to_list()
 
 with plt_box_1:
 
@@ -147,7 +152,7 @@ with plt_box_1:
                             title=f'<b>Top 18 Political Parties with Highest Total Criminal Records from {State_Selected} in {Year_Selected} Elections</b>')
 
     # fig_party_crime_sum.update_yaxes(autorange="reversed")
-    fig_party_crime_sum.update_layout(title_font_size=20, height = 500, 
+    fig_party_crime_sum.update_layout(title_font_size=18, height = 500, 
                                         showlegend=False
                                         )
     fig_party_crime_sum.add_annotation(
@@ -228,9 +233,9 @@ with boxplt_2:
                         "Party": "Political Parties"
                                         },
                                 
-                                title=f'<b>Top 6 Political Parties with Individual Criminal Record points & boxplot from {State_Selected} in {Year_Selected} Elections</b>'
+                                title=f'<b>Top 6 Political Parties with Individual Criminal Record points & boxplot from<br> {State_Selected} in {Year_Selected} Elections</b>'
         ).update_layout(
-        title_font_size=20,
+        title_font_size=18, height = 450, 
         # xaxis=dict(autorange="reversed")
         # plot_bgcolor = 'white'
         )
@@ -238,7 +243,7 @@ with boxplt_2:
     st.plotly_chart(fig_party_crime_box,use_container_width=True)
 
 with boxplt_1:
-    v_spacer(8)
+    v_spacer(9)
 
     st.write(f"*This Plot* shows each Individual Candidate as a point with respect to number of criminal cases against it for each Political Party from the  \
             respective state of {State_Selected} in election year {Year_Selected}. It considers top 6 Political Parties only.")
@@ -250,9 +255,9 @@ with boxplt_1:
 
 ############################## FACET PLOT DONE ##############################
 
-plt3_box_1,plt3_box_2 = st.columns([1,6],gap = "small")
+plt3_box_1,plt3_box_2 = st.columns([6,1],gap = "small")
 
-with plt3_box_1:
+with plt3_box_2:
     v_spacer(6)
 
     st.write(f"*This Plot* shows the count of candidates with highest number of criminal cases in their Party in  \
@@ -260,7 +265,7 @@ with plt3_box_1:
             at the bottom. It considers top 6 Political Parties only and Individuals with  greater than 3 Criminal Cases.")
     
 
-with plt3_box_2:
+with plt3_box_1:
     fig_cases_count_party_facet = px.bar(df_selected.filter(pl.col('Party').is_in(Major_Parties) & 
                                         (pl.col('Criminal_Case') > 3)).sort(
                                         by='Criminal_Case', descending=True
@@ -276,7 +281,7 @@ with plt3_box_2:
                                         title=f'<b>Top 6 Parties with Highest number of Criminal Record Candidate in {State_Selected} {Year_Selected} Elections</b>'
                             )
 
-    fig_cases_count_party_facet.update_layout(title_font_size=16, height = 600, 
+    fig_cases_count_party_facet.update_layout(title_font_size=18, height = 600, 
                                         showlegend=False
                                         )
 
@@ -286,7 +291,7 @@ with plt3_box_2:
 
 
 # Add a Explantion of below charts
-v_spacer(4)
+v_spacer(2)
 st.write("It is also important to see not just the 'Total Criminal Records' but also the 'Average Criminal Cases per Candidate'  \
           as some parties with small number of candidates may have individuals with high number of Criminal Cases too. Below  \
          is the breakdown of such 3 plots with Total Candidates, Total Criminal Cases, Average Criminal Cases  \
@@ -358,6 +363,11 @@ with Asset_mark_2:
     st.markdown('<p class="big-font">Sum of Total Asset of Candidates from each Party</p>', unsafe_allow_html=True)
 
 
+
+
+
+############################## ASSET PLOTS ##############################
+
 asset_1,asset_2 = st.columns([5,4],gap = "small")
 
 with asset_1:    
@@ -395,7 +405,6 @@ with asset_1:
     st.plotly_chart(fig_party_asset_sum,use_container_width=True)
 
 
-##############################################################################
 
 with asset_2:
     fig_party_asset_buble = px.scatter(df_selected.filter(
@@ -417,8 +426,117 @@ with asset_2:
 
     st.plotly_chart(fig_party_asset_buble,use_container_width=True)
 
+############################## ASSET PLOTS DONE ##############################
 
-##############################################################################
+
+
+
+############################## ASSET CRIME BUBBLE PLOT ##############################
+
+fig_crime_asset_buble = px.scatter(df_selected.filter(pl.col('Party').is_in(Major_Parties)).to_pandas(),
+                                    x='Criminal_Case',y='Total_Assets', color="Party",
+                                    hover_name="Party",
+                                    # size = 'Total_Assets',
+                                    labels={
+                                            "Criminal_Case": "Total Criminal Cases",
+                                            "Party": "Political Parties",
+                                            "Total_Assets": "Total Assets (in Rs) of Candidate"
+                                        },
+                        
+                        title=f'<b>Total Asset of Individual Vs Criminal Cases of Top 6 Political Parties from {State_Selected} in {Year_Selected} Elections</b>')
+
+# fig_party_crime_sum.update_yaxes(autorange="reversed")
+fig_crime_asset_buble.update_layout(title_font_size=18, height = 500, 
+                                    # showlegend=False
+                                    )
+
+st.plotly_chart(fig_crime_asset_buble,use_container_width=True)
+
+############################## ASSET CRIME BUBBLE PLOT DONE ##############################
+
+
+
+
+st.markdown("""---""")    
+
+Const_1,Const_2,Const_3 = st.columns([1,5,1],gap = "small")
+
+with Const_2:
+    st.markdown("""<style>.big-font {
+    font-size:38px !important;}
+    </style>
+    """, unsafe_allow_html=True)
+    st.markdown('<p class="big-font">Criminal Cases by Constituency</p>', unsafe_allow_html=True)
+
+
+############################## CONSTITUENCY PLOT ##############################
+
+
+fig_const_crime_sum = px.bar(df_selected.groupby(['Constituency','Party']
+                                ).agg(pl.col('Criminal_Case').sum()
+                                ).sort(by='Criminal_Case',descending=True
+                                ).to_pandas(),
+                                orientation='v',
+                                barmode = 'stack', 
+                                x='Constituency',y='Criminal_Case', color="Party",
+                                hover_name="Constituency",
+                                labels={
+                                        "Total_Assets": "Total Assets (in Rs.)",
+                                        "Party": "Political Parties"
+                                    },
+                            
+                            title=f'<b>Constituencies with highest Criminal Cases Candidatesfrom {State_Selected} in {Year_Selected} Elections</b>')
+
+fig_const_crime_sum.update_xaxes(autorange="reversed")
+fig_const_crime_sum.update_layout(title_font_size=18, height = 600, 
+                                    # showlegend=False
+                                    )
+
+st.plotly_chart(fig_const_crime_sum,use_container_width=True)
+
+
+############################## CONSTITUENCY PLOT DONE ##############################
+
+
+
+
+st.markdown("""---""")    
+
+Const_1,Const_2,Const_3 = st.columns([1,5,1],gap = "small")
+
+with Const_2:
+    st.markdown("""<style>.big-font {
+    font-size:38px !important;}
+    </style>
+    """, unsafe_allow_html=True)
+    st.markdown('<p class="big-font">Criminal Cases by Education</p>', unsafe_allow_html=True)
+
+
+
+############################## EDUCATION BUBBLE PLOT ##############################
+
+fig__edu_crime_buble = px.scatter(df_selected.filter((pl.col('Party').is_in(Major_Parties)) &
+                                                     (pl.col('Criminal_Case') > 0)).to_pandas(),
+                                    x='Education',y='Criminal_Case', color="Party", size = "Total_Assets",
+                                    hover_name="Party", opacity=0.5,
+                                    labels={
+                                            "Criminal_Case": "Total Criminal Cases",
+                                            "Party": "Political Parties",
+                                            "Total_Assets": "Total Assets (in Rs) of Candidate"
+                                        },
+                        
+                        title=f'<b>Criminal Cases of Top 6 Political Parties by Education(Size wrt to Total Assets) from {State_Selected} in {Year_Selected} Elections</b>')
+
+# fig_party_crime_sum.update_yaxes(autorange="reversed")
+fig__edu_crime_buble.update_layout(title_font_size=18, height = 500
+                                    # showlegend=False
+                                    )
+
+st.plotly_chart(fig__edu_crime_buble,use_container_width=True)
+
+
+############################## EDUCATION BUBBLE PLOT DONE ##############################
+
 
 st.markdown("""---""")
 
