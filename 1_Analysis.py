@@ -101,7 +101,7 @@ with st.sidebar:
 ############################## SIDEBAR DISCAILMER ##############################
     v_spacer(4)
 
-    st.write("*Disclaimer:* - Purpose of this app is **educational** only and to demonstrate the use of **Python & Polars**  \n   \
+    st.write("*Disclaimer:* - This app is for **educational** Purpose only and to demonstrate the use of **Python & Polars**  \n   \
              \n This app uses very small portion of data from myneta.info and aggregates it using **Polars Python** to handle **data processing** efficiently.   \n \
              \n Data used in this **Web App** is from https://myneta.info/ which is maintained by **ADR**. \
                \n Would request the viewers to visit https://myneta.info/ for more details and original content.  \
@@ -126,14 +126,17 @@ df_selected = df.lazy().filter(pl.col('State').is_in(State_Selected) &
 
 
 ############################## FIRST PLOT ##############################
-plt_box_1,plt_box_2 = st.columns([6,1],gap = "small")
+plt_box_1,plt_box_2 = st.columns([5,2],gap = "small")
+
+highest_criminal_parties = df_selected.groupby(['Party']
+                                ).agg(pl.col('Criminal_Case').sum()
+                                ).sort(by='Criminal_Case',descending=True)
+
+highest_criminal_party = highest_criminal_parties.select(pl.col('Party')).head(1).to_series().to_list()
 
 with plt_box_1:
 
-    fig_party_crime_sum = px.bar(df_selected.groupby(['Party']
-                                ).agg(pl.col('Criminal_Case').sum()
-                                ).sort(by='Criminal_Case',descending=True
-                                ).head(18).to_pandas(),
+    fig_party_crime_sum = px.bar(highest_criminal_parties.head(18).to_pandas(),
                                 orientation='h',
                                 x='Criminal_Case',y='Party', color="Party",
                                 labels={
@@ -144,7 +147,7 @@ with plt_box_1:
                             title=f'<b>Top 18 Political Parties with Highest Total Criminal Records from {State_Selected} in {Year_Selected} Elections</b>')
 
     # fig_party_crime_sum.update_yaxes(autorange="reversed")
-    fig_party_crime_sum.update_layout(title_font_size=20, height = 600, 
+    fig_party_crime_sum.update_layout(title_font_size=20, height = 500, 
                                         showlegend=False
                                         )
     fig_party_crime_sum.add_annotation(
@@ -165,7 +168,7 @@ with plt_box_1:
 
 
 with plt_box_2:
-    v_spacer(7)
+    v_spacer(8)
 
     st.write(f"*This Plot* demostrates the total number of criminal cases on the candidates of each party from the  \
             respective state of {State_Selected} in election year {Year_Selected} with maximum number of criminal cases at the top and lowest  \
@@ -176,8 +179,7 @@ with plt_box_2:
 
 
 
-
-############################## SECOND PLOT ##############################
+############################## USEFUL AGGREGATIONS & LIST ##############################
 
 cases_agg_2022 = df_selected.groupby(['Party']).agg(
     [
@@ -187,6 +189,110 @@ cases_agg_2022 = df_selected.groupby(['Party']).agg(
 ).with_columns(
     (pl.col('total_criminal_cases') / pl.col('candidates_count') ).alias('avg_cases')
 ).sort(by = 'total_criminal_cases', descending = True)
+
+
+
+Major_Parties = (
+    cases_agg_2022
+    .filter(pl.col('total_criminal_cases')>0)
+    # .groupby('Party')
+    # .count()
+    # .sort('count',descending = True)
+    .sort('total_criminal_cases',descending = True)
+    .head(6)
+    .select(pl.col('Party'))
+    .to_series()
+    .to_list()
+)
+
+
+############################## USEFUL AGGREGATIONS & LIST DONE ##############################
+
+
+
+
+
+############################## BOX PLOT ##############################
+
+boxplt_1,boxplt_2 = st.columns([2,5],gap = "small")
+
+with boxplt_2:
+    fig_party_crime_box = px.box(df_selected.filter(
+            (pl.col('Party').is_in(Major_Parties)) # highest_criminal_parties.select(pl.col('Party')).head(6).to_series().to_list()
+                                    ).to_pandas(),
+            x = 'Party',
+            y = 'Criminal_Case',
+            points = 'all', # will display dots next to the boxes 
+            labels={
+                        "Criminal_Case": "Count of Criminal Cases on Individual",
+                        "Party": "Political Parties"
+                                        },
+                                
+                                title=f'<b>Top 6 Political Parties with Individual Criminal Record points & boxplot from {State_Selected} in {Year_Selected} Elections</b>'
+        ).update_layout(
+        title_font_size=20,
+        # xaxis=dict(autorange="reversed")
+        # plot_bgcolor = 'white'
+        )
+
+    st.plotly_chart(fig_party_crime_box,use_container_width=True)
+
+with boxplt_1:
+    v_spacer(8)
+
+    st.write(f"*This Plot* shows each Individual Candidate as a point with respect to number of criminal cases against it for each Political Party from the  \
+            respective state of {State_Selected} in election year {Year_Selected}. It considers top 6 Political Parties only.")
+
+############################## BOX PLOT DONE ##############################
+
+
+
+
+############################## FACET PLOT DONE ##############################
+
+plt3_box_1,plt3_box_2 = st.columns([1,6],gap = "small")
+
+with plt3_box_1:
+    v_spacer(6)
+
+    st.write(f"*This Plot* shows the count of candidates with highest number of criminal cases in their Party in  \
+            respect to state of {State_Selected} in election year {Year_Selected} with maximum number of criminal cases on an indiviual at the top and lowest  \
+            at the bottom. It considers top 6 Political Parties only and Individuals with  greater than 3 Criminal Cases.")
+    
+
+with plt3_box_2:
+    fig_cases_count_party_facet = px.bar(df_selected.filter(pl.col('Party').is_in(Major_Parties) & 
+                                        (pl.col('Criminal_Case') > 3)).sort(
+                                        by='Criminal_Case', descending=True
+                                        ).groupby(
+                                        ['Party','Criminal_Case'], maintain_order=True).count().to_pandas(),
+                                        orientation='h',
+                                        x='count',y='Criminal_Case', facet_col="Party", facet_col_wrap=3,
+                                        labels={
+                                                "Criminal_Case": "Criminal Cases on a Candidate",
+                                                "count": "Count of candidates with Cases #"
+                                            },
+                                        
+                                        title=f'<b>Top 6 Parties with Highest number of Criminal Record Candidate in {State_Selected} {Year_Selected} Elections</b>'
+                            )
+
+    fig_cases_count_party_facet.update_layout(title_font_size=16, height = 600, 
+                                        showlegend=False
+                                        )
+
+    st.plotly_chart(fig_cases_count_party_facet,use_container_width=True)
+
+############################## FACET PLOT DONE ##############################
+
+
+# Add a Explantion of below charts
+v_spacer(4)
+st.write("It is also important to see not just the 'Total Criminal Records' but also the 'Average Criminal Cases per Candidate'  \
+          as some parties with small number of candidates may have individuals with high number of Criminal Cases too. Below  \
+         is the breakdown of such 3 plots with Total Candidates, Total Criminal Cases, Average Criminal Cases  \
+        per candidate for Political Parties")
+
+############################## 3 PLOTS ##############################
 
 fig_party_cand_count = px.bar(cases_agg_2022.sort(by='candidates_count',descending=True
                                 ).head(18).to_pandas(),
@@ -236,98 +342,83 @@ with plt1_mid:
 with plt1_right:
     st.plotly_chart(fig_party_avg_cases,use_container_width=True)
 
+############################## 3 PLOTS DONE ##############################
 
-Major_Parties = (
-    cases_agg_2022
-    .filter(pl.col('total_criminal_cases')>0)
-    # .groupby('Party')
-    # .count()
-    # .sort('count',descending = True)
-    .sort('total_criminal_cases',descending = True)
-    .head(6)
-    .select(pl.col('Party'))
-    .to_series()
-    .to_list()
-)
 
-plt3_box_1,plt3_box_2 = st.columns([1,6],gap = "small")
-
-with plt3_box_1:
-    v_spacer(6)
-
-    st.write(f"*This Plot* shows the count of candidates with highest number of criminal cases in their Party in  \
-            respect to state of {State_Selected} in election year {Year_Selected} with maximum number of criminal cases on an indiviual at the top and lowest  \
-            at the bottom. It considers top 6 Political Parties only and Individuals with  greater than 3 Criminal Cases.")
-    
-
-with plt3_box_2:
-    fig_cases_count_party_facet = px.bar(df_selected.filter(pl.col('Party').is_in(Major_Parties) & 
-                                        (pl.col('Criminal_Case') > 3)).sort(
-                                        by='Criminal_Case', descending=True
-                                        ).groupby(
-                                        ['Party','Criminal_Case'], maintain_order=True).count().to_pandas(),
-                                        orientation='h',
-                                        x='count',y='Criminal_Case', facet_col="Party", facet_col_wrap=3,
-                                        labels={
-                                                "Criminal_Case": "Criminal Cases on a Candidate",
-                                                "count": "Count of candidates with Cases #"
-                                            },
-                                        
-                                        title=f'<b>{State_Selected} - Top 6 Parties with Highest number of Criminal Records in {Year_Selected} Elections</b>'
-                            )
-
-    fig_cases_count_party_facet.update_layout(title_font_size=16, height = 600, 
-                                        showlegend=False
-                                        )
-
-    st.plotly_chart(fig_cases_count_party_facet,use_container_width=True)
 
 st.markdown("""---""")    
 
-# Asset_1,Asset_2,Asset_3 = st.columns([1,6,1],gap = "small")
+Asset_mark_1,Asset_mark_2,Asset_mark_3 = st.columns([1,8,1],gap = "small")
 
-# with Asset_2:
-st.markdown("""<style>.big-font {
-font-size:38px !important;}
-</style>
-""", unsafe_allow_html=True)
-st.markdown('<p class="big-font">Sum of Total Asset of Candidates from each Party</p>', unsafe_allow_html=True)
+with Asset_mark_2:
+    st.markdown("""<style>.big-font {
+    font-size:38px !important;}
+    </style>
+    """, unsafe_allow_html=True)
+    st.markdown('<p class="big-font">Sum of Total Asset of Candidates from each Party</p>', unsafe_allow_html=True)
 
 
-fig_party_asset_sum = px.bar(df_selected.groupby(['Party']
-                            ).agg(pl.col('Total_Assets').sum()
-                            ).sort(by='Total_Assets',descending=True
-                            ).head(18).to_pandas(),
-                            orientation='h',
-                            x='Total_Assets',y='Party', color="Party",
-                            labels={
-                                    "Total_Assets": "Total Assets (in Rs.)",
-                                    "Party": "Political Parties"
-                                },
-                        
-                        title=f'<b>Top 18 Political Parties with Highest Total Sum of Assets of candidates from {State_Selected} in {Year_Selected} Elections</b>')
+asset_1,asset_2 = st.columns([5,4],gap = "small")
 
-# fig_party_crime_sum.update_yaxes(autorange="reversed")
-fig_party_asset_sum.update_layout(title_font_size=20, height = 600, 
-                                    showlegend=False
+with asset_1:    
+    fig_party_asset_sum = px.bar(df_selected.groupby(['Party']
+                                ).agg(pl.col('Total_Assets').sum()
+                                ).sort(by='Total_Assets',descending=True
+                                ).head(18).to_pandas(),
+                                orientation='h',
+                                x='Total_Assets',y='Party', color="Party",
+                                labels={
+                                        "Total_Assets": "Total Assets (in Rs.)",
+                                        "Party": "Political Parties"
+                                    },
+                            
+                            title=f'<b>Top 18 Political Parties with Highest Total Sum of Assets of candidates <br>from {State_Selected} in {Year_Selected} Elections</b>')
+
+    # fig_party_crime_sum.update_yaxes(autorange="reversed")
+    fig_party_asset_sum.update_layout(title_font_size=18, height = 500, 
+                                        showlegend=False
+                                        )
+    fig_party_asset_sum.add_annotation(
+                                        showarrow=False,
+                                        text='Data Source: https://myneta.info/',
+                                        xanchor='right',
+                                        x=2,
+                                        xshift=575,
+                                        yanchor='bottom',
+                                        y=0.01 #,
+                                        # font=dict(
+                                        #     family="Courier New, monospace",
+                                        #     size=22,
+                                        #     color="#0000FF"
                                     )
-fig_party_asset_sum.add_annotation(
-                                    showarrow=False,
-                                    text='Data Source: https://myneta.info/',
-                                    xanchor='right',
-                                    x=2,
-                                    xshift=575,
-                                    yanchor='bottom',
-                                    y=0.01 #,
-                                    # font=dict(
-                                    #     family="Courier New, monospace",
-                                    #     size=22,
-                                    #     color="#0000FF"
-                                )
 
-st.plotly_chart(fig_party_asset_sum,use_container_width=True)
+    st.plotly_chart(fig_party_asset_sum,use_container_width=True)
 
 
+##############################################################################
+
+with asset_2:
+    fig_party_asset_buble = px.scatter(df_selected.filter(
+                                        (pl.col('Party').is_in(Major_Parties)) 
+                                        ).to_pandas(),
+                                        x = 'Party',
+                                        y = 'Total_Assets',
+                                        color = 'Party', # will display dots next to the boxes 
+                                        labels={
+                                                    "Total_Assets": "Total Assets (in Rs) of Candidate",
+                                                    "Party": "Political Parties"
+                                                                    },
+                                                            
+                                title=f'<b>Top 6 Political Parties with Individual <br>Total Asset Record points from {State_Selected} in {Year_Selected} Elections</b>'
+        ).update_layout(
+        title_font_size=18, height = 500,
+        showlegend = False
+        )
+
+    st.plotly_chart(fig_party_asset_buble,use_container_width=True)
+
+
+##############################################################################
 
 st.markdown("""---""")
 
@@ -339,7 +430,7 @@ v_spacer(10)
 _1,box_left,_2 = st.columns([1,4,1],gap = "small")
 
 with box_left:
-    st.write("*Disclaimer:* - Purpose of this app is **educational** only and to demonstrate the use of **Python & Polars**  \n   \
+    st.write("*Disclaimer:* - This app is for **educational** Purpose only and to demonstrate the use of **Python & Polars**  \n   \
              \n This app uses very small portion of data from myneta.info and aggregates it using **Polars Python** to handle **data processing** efficiently.   \n \
              \n Data used in this **Web App** is from https://myneta.info/ which is maintained by **ADR**. \
                \n Would request the viewers to visit https://myneta.info/ for more details and original content.  \
