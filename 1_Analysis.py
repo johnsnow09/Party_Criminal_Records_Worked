@@ -227,6 +227,7 @@ with boxplt_2:
                                     ).to_pandas(),
             x = 'Party',
             y = 'Criminal_Case',
+            color= 'Party',
             points = 'all', # will display dots next to the boxes 
             labels={
                         "Criminal_Case": "Count of Criminal Cases on Individual",
@@ -272,7 +273,8 @@ with plt3_box_1:
                                         ).groupby(
                                         ['Party','Criminal_Case'], maintain_order=True).count().to_pandas(),
                                         orientation='h',
-                                        x='count',y='Criminal_Case', facet_col="Party", facet_col_wrap=3,
+                                        x='count',y='Criminal_Case', color="Party",
+                                        facet_col="Party", facet_col_wrap=3,
                                         labels={
                                                 "Criminal_Case": "Criminal Cases on a Candidate",
                                                 "count": "Count of candidates with Cases #"
@@ -540,10 +542,7 @@ st.plotly_chart(fig__edu_crime_buble,use_container_width=True)
 
 st.markdown("""---""")
 
-
-
-v_spacer(10)
-
+v_spacer(1)
 
 _1,box_left,_2 = st.columns([1,4,1],gap = "small")
 
