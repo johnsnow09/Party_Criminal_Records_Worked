@@ -4,13 +4,15 @@ import pandas as pd
 import numpy as np
 import datetime as dt
 import plotly.express as px
+# import geopandas as gp
+# import matplotlib.pyplot as plt
 
 
 # from: https://youtu.be/lWxN-n6L7Zc
 # StreamlitAPIException: set_page_config() can only be called once per app, and must be called as the first Streamlit command in your script.
 
 
-############### Custom Functions      ###############
+############### Custom Functions ###############
 
 # from: https://discuss.streamlit.io/t/how-to-add-extra-lines-space/2220/7
 def v_spacer(height, sb=False) -> None:
@@ -37,6 +39,8 @@ def get_data():
     return df
 
 df = get_data()
+
+# final_shp_export = gp.read_file('shape_file_exported/final_shp_export.shp')
 ############################## DATA DONE ##############################
 
 
@@ -101,7 +105,6 @@ with st.sidebar:
 
 
 
-
 ############################## SIDEBAR DISCAILMER ##############################
     v_spacer(4)
 
@@ -116,13 +119,14 @@ with st.sidebar:
 
 
 
-
 ############################## FILTERED DATA ##############################
 
 df_selected = df.lazy().filter(pl.col('State').is_in(State_Selected) &
                     (pl.col('Year').is_in(Year_Selected))
                     ).collect()
-    
+
+
+# final_shp_trimmed = final_shp_export[(final_shp_export.State.isin(State_Selected)) & (final_shp_export.Year.isin(Year_Selected))]
 ############################## FILTERED DATA DONE ##############################    
 
 
@@ -458,7 +462,7 @@ st.plotly_chart(fig_crime_asset_buble,use_container_width=True)
 
 
 
-
+# By Constituency Text
 st.markdown("""---""")    
 
 Const_1,Const_2,Const_3 = st.columns([1,5,1],gap = "small")
@@ -474,10 +478,15 @@ with Const_2:
 ############################## CONSTITUENCY PLOT ##############################
 
 
-fig_const_crime_sum = px.bar(df_selected.groupby(['Constituency','Party']
-                                ).agg(pl.col('Criminal_Case').sum()
-                                ).sort(by='Criminal_Case',descending=True
-                                ).to_pandas(),
+input_constituency = st.radio("Select All Parties?", ["No","Yes"])
+
+
+if input_constituency == "Yes":
+    fig_const_crime_sum = px.bar(
+                                df_selected.groupby(['Constituency','Party']
+                                    ).agg(pl.col('Criminal_Case').sum()
+                                    ).sort(by='Criminal_Case',descending=True
+                                    ).to_pandas(),
                                 orientation='v',
                                 barmode = 'stack', 
                                 x='Constituency',y='Criminal_Case', color="Party",
@@ -486,8 +495,30 @@ fig_const_crime_sum = px.bar(df_selected.groupby(['Constituency','Party']
                                         "Total_Assets": "Total Assets (in Rs.)",
                                         "Party": "Political Parties"
                                     },
-                            
-                            title=f'<b>Constituencies with highest Criminal Cases Candidatesfrom {State_Selected} in {Year_Selected} Elections</b>')
+                                
+                                title=f'<b>Constituencies with highest Criminal Cases Candidates from {State_Selected} in {Year_Selected} Elections</b>')
+
+else:
+    fig_const_crime_sum = px.bar(
+                                df_selected.filter(
+                                    pl.col('Party').is_in(Major_Parties)).groupby(['Constituency','Party']
+                                    ).agg(pl.col('Criminal_Case').sum()
+                                    ).sort(by='Criminal_Case',descending=True
+                                    ).to_pandas()
+                                    
+                                    ,
+                                orientation='v',
+                                barmode = 'stack', 
+                                x='Constituency',y='Criminal_Case', color="Party",
+                                hover_name="Constituency",
+                                labels={
+                                        "Total_Assets": "Total Assets (in Rs.)",
+                                        "Party": "Political Parties"
+                                    },
+                                
+                                title=f'<b>Constituencies with highest Criminal Cases Candidates of Top 6 Parties from {State_Selected} in {Year_Selected} Elections</b>')
+
+
 
 fig_const_crime_sum.update_xaxes(autorange="reversed")
 fig_const_crime_sum.update_layout(title_font_size=18, height = 600, 
@@ -501,7 +532,7 @@ st.plotly_chart(fig_const_crime_sum,use_container_width=True)
 
 
 
-
+# By Education Text
 st.markdown("""---""")    
 
 Const_1,Const_2,Const_3 = st.columns([1,5,1],gap = "small")
@@ -540,6 +571,10 @@ st.plotly_chart(fig__edu_crime_buble,use_container_width=True)
 ############################## EDUCATION BUBBLE PLOT DONE ##############################
 
 
+
+
+############################## DISCALIMER ##############################
+
 st.markdown("""---""")
 
 v_spacer(1)
@@ -552,3 +587,5 @@ with box_left:
              \n Data used in this **Web App** is from https://myneta.info/ which is maintained by **ADR**. \
                \n Would request the viewers to visit https://myneta.info/ for more details and original content.  \
             ")
+    
+############################## DISCALIMER DONE ##############################
