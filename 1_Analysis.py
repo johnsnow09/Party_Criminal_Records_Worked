@@ -32,6 +32,7 @@ st.set_page_config(page_title="Political Parties Candidate Analysis",
 ############################## GET DATA ##############################
 # @st.cache
 # @st.cache_data
+@st.cache_resource
 def get_data():
     df = pl.scan_parquet('Elections_Data_Compiled.parquet')
     
@@ -39,9 +40,15 @@ def get_data():
 
 df = get_data()
 
-final_shp_export = gp.read_file('shape_file_exported/final_shp_export.shp').rename(
+@st.cache_resource
+def get_shape_data():
+    final_shp_export = gp.read_file('shape_file_exported/final_shp_export.shp').rename(
                                                                             columns = {'Criminal_C':'Criminal_Case',
                                                                            'Total_Asse':'Total_Assets'})
+    
+    return final_shp_export
+
+final_shp_export = get_shape_data()
 ############################## DATA DONE ##############################
 
 
@@ -69,14 +76,22 @@ with st.sidebar:
     st.write("This is Selection Control Panel")
 
     # State_List = df.lazy().select(pl.col('State')).unique().collect().to_series().to_list()
-    State_List = df.collect().to_pandas()["State"].unique().tolist()
+    # State_List = df.collect().to_pandas()["State"].unique().tolist()
+
+    @st.cache_data
+    def get_state_list():
+        # return get_data().select('State').unique().collect().to_series().to_list()
+        return df.select('State').unique().collect().to_series().to_list()
+    
+    State_List = get_state_list()
+    State_index = State_List.index('Delhi')
 
     State_Selected = st.selectbox(label="Select State",
                                   options = State_List,
-                                  index=5)
+                                  index=State_index)
     
-    State_Selected = [State_Selected]
-    # st.write(State_Selected)
+    # Converting State_Selected to list 
+    # State_Selected = [State_Selected]
 
     # State_Selected = st.multiselect(label="Select State",
     #                                 options = State_List,
@@ -93,8 +108,14 @@ with st.sidebar:
 
 ############################## SECOND FILTER YEAR ##############################
 
-    Year_List = df.lazy().filter(pl.col('State').is_in(State_Selected)).select(
-                                                pl.col('Year')).unique().collect().to_series().sort().to_list()
+    @st.cache_data
+    def get_year_list(State_Selected):
+        
+        return df.filter(pl.col('State') == State_Selected
+                              ).select(pl.col('Year')
+                                       ).unique().collect().to_series().sort().to_list()
+    
+    Year_List = get_year_list(State_Selected)
 
     Year_Selected = st.multiselect(label="Select Election Year (Latest by default)",
                                      options=Year_List,
@@ -122,12 +143,12 @@ with st.sidebar:
 
 ############################## FILTERED DATA ##############################
 
-df_selected = df.lazy().filter(pl.col('State').is_in(State_Selected) &
+df_selected = df.filter((pl.col('State') == State_Selected) &
                     (pl.col('Year').is_in(Year_Selected))
-                    ).collect()
+                    )
 
 
-final_shp_trimmed = final_shp_export[(final_shp_export.State.isin(State_Selected)) & (final_shp_export.Year.isin(Year_Selected))]
+final_shp_trimmed = final_shp_export[(final_shp_export.State == State_Selected) & (final_shp_export.Year.isin(Year_Selected))]
 ############################## FILTERED DATA DONE ##############################    
 
 
@@ -150,12 +171,10 @@ cases_agg_2022 = df_selected.groupby(['Party']).agg(
 Major_Parties = (
     cases_agg_2022
     .filter(pl.col('total_criminal_cases')>0)
-    # .groupby('Party')
-    # .count()
-    # .sort('count',descending = True)
     .sort('total_criminal_cases',descending = True)
     .head(6)
     .select(pl.col('Party'))
+    .collect()
     .to_series()
     .to_list()
 )
@@ -189,12 +208,18 @@ fig_choropleth_assembly = px.choropleth(
                                                 color_continuous_scale="magma",
                                                 # range_color = (0,12), 
                                                 color = "Criminal_Case",
-                                                hover_name='AC_NAME')
+                                                hover_name='AC_NAME',
+                                                hover_data=["Criminal_Case", "Total_Assets"]
+                                                # hover_data = {'locations':False, # https://stackoverflow.com/questions/74614344/selecting-hover-on-plotly-choropleth-map
+                                                #               'Criminal_Case':True
+                                                #               }
+                                                )
 
 fig_choropleth_assembly.update_geos(fitbounds="locations", visible=False
                                     ).update_layout(
                                 paper_bgcolor = 'rgba(0, 0, 0, 0)',
                                 geo=dict(bgcolor= 'rgba(0,0,0,0)'), 
+                                # hoverlabel = {'bgcolor': 'rgba(0,0,0,0)'},
                                 height = 500, width = 400,
                                 )
 
@@ -212,6 +237,9 @@ fig_choropleth_assembly.update_geos(fitbounds="locations", visible=False
 st.plotly_chart(fig_choropleth_assembly,use_container_width=True)
 
 
+############################### Exapnder for Constituency Bar plot ###############################
+# with st.expander("See explanation"):
+
 Const_option_1,Const_option_2 = st.columns([6,1],gap = "small")
 
 with Const_option_2:
@@ -224,6 +252,7 @@ with Const_option_1:
                                     df_selected.groupby(['Constituency','Party']
                                         ).agg(pl.col('Criminal_Case').sum()
                                         ).sort(by='Criminal_Case',descending=True
+                                        ).collect(
                                         ).to_pandas(),
                                     orientation='v',
                                     barmode = 'stack', 
@@ -242,19 +271,22 @@ with Const_option_1:
                                         pl.col('Party').is_in(Major_Parties)).groupby(['Constituency','Party']
                                         ).agg(pl.col('Criminal_Case').sum()
                                         ).sort(by='Criminal_Case',descending=True
+                                        ).collect(
                                         ).to_pandas()
                                         
                                         ,
                                     orientation='v',
                                     barmode = 'stack', 
                                     x='Constituency',y='Criminal_Case', color="Party",
-                                    hover_name="Constituency",
+                                    hover_name="Constituency", 
+                                    
                                     labels={
                                             "Total_Assets": "Total Assets (in Rs.)",
                                             "Party": "Political Parties"
                                         },
                                     
-                                    title=f'<b>Constituencies with highest Criminal Cases Candidates of Top 6 Parties from {State_Selected} in {Year_Selected} Elections</b>')
+                                    title=f'<b>Constituencies with highest Criminal Cases Candidates of Top 6 Parties from {State_Selected[0]} in {Year_Selected[0]} Elections</b>')
+                                    # title= " ".join('Constituencies with highest Criminal Cases Candidates of Top 6 Parties from', State_Selected[0], 'in', Year_Selected[0], 'Elections'))
 
 
 
@@ -289,14 +321,15 @@ highest_criminal_parties = df_selected.groupby(['Party']
                                 ).agg(pl.col('Criminal_Case').sum()
                                 ).sort(by='Criminal_Case',descending=True)
 
-highest_criminal_party = highest_criminal_parties.select(pl.col('Party')).head(1).to_series().to_list()
+highest_criminal_party = highest_criminal_parties.select(pl.col('Party')).head(1).collect().to_series().to_list()
 # highest_criminal_party6 = highest_criminal_parties.select(pl.col('Party')).head(6).to_series().to_list()
 
 with plt_box_1:
 
-    fig_party_crime_sum = px.bar(highest_criminal_parties.head(18).to_pandas(),
+    fig_party_crime_sum = px.bar(highest_criminal_parties.head(18).collect().to_pandas(),
                                 orientation='h',
                                 x='Criminal_Case',y='Party', color="Party",
+                                hover_name='Party',
                                 labels={
                                         "Criminal_Case": "Total Criminal Cases",
                                         "Party": "Political Parties"
@@ -344,10 +377,11 @@ boxplt_1,boxplt_2 = st.columns([2,5],gap = "small")
 with boxplt_2:
     fig_party_crime_box = px.box(df_selected.filter(
             (pl.col('Party').is_in(Major_Parties)) # highest_criminal_parties.select(pl.col('Party')).head(6).to_series().to_list()
-                                    ).to_pandas(),
+                                    ).collect().to_pandas(),
             x = 'Party',
             y = 'Criminal_Case',
             color= 'Party',
+            hover_name='Party',
             points = 'all', # will display dots next to the boxes 
             labels={
                         "Criminal_Case": "Count of Criminal Cases on Individual",
@@ -391,9 +425,10 @@ with plt3_box_1:
                                         (pl.col('Criminal_Case') > 3)).sort(
                                         by='Criminal_Case', descending=True
                                         ).groupby(
-                                        ['Party','Criminal_Case'], maintain_order=True).count().to_pandas(),
+                                        ['Party','Criminal_Case'], maintain_order=True).count().collect().to_pandas(),
                                         orientation='h',
                                         x='count',y='Criminal_Case', color="Party",
+                                        hover_name='Party',
                                         facet_col="Party", facet_col_wrap=3,
                                         labels={
                                                 "Criminal_Case": "Criminal Cases on a Candidate",
@@ -422,9 +457,10 @@ st.write("It is also important to see not just the 'Total Criminal Records' but 
 ############################## 3 PLOTS ##############################
 
 fig_party_cand_count = px.bar(cases_agg_2022.sort(by='candidates_count',descending=True
-                                ).head(18).to_pandas(),
+                                ).head(18).collect().to_pandas(),
                                 orientation='h',
                                 x='candidates_count',y='Party', color="Party",
+                                hover_name='Party',
                                 labels={
                                         "candidates_count": "Total Candidates",
                                         "Party": "Political Parties"
@@ -439,14 +475,15 @@ fig_party_cand_count.update_layout(title_font_size=16, height = 600,
 fig_party_crime_sum2 = fig_party_crime_sum
 
 fig_party_crime_sum2.update_layout(title_font_size=16, height = 600, 
-                                    showlegend=False,
+                                    showlegend=False, 
                                     title_text = f'<b>Highest Total Criminal Cases in {Year_Selected} Elections</b>'
                                     )
 
 fig_party_avg_cases = px.bar(cases_agg_2022.sort(by='avg_cases',descending=True
-                                ).head(18).to_pandas(),
+                                ).head(18).collect().to_pandas(),
                                 orientation='h',
                                 x='avg_cases',y='Party', color="Party",
+                                hover_name='Party',
                                 labels={
                                         "avg_cases": "Average Case (Cases/Candidates) ",
                                         "Party": "Political Parties"
@@ -496,9 +533,10 @@ with asset_1:
     fig_party_asset_sum = px.bar(df_selected.groupby(['Party']
                                 ).agg(pl.col('Total_Assets').sum()
                                 ).sort(by='Total_Assets',descending=True
-                                ).head(18).to_pandas(),
+                                ).head(18).collect().to_pandas(),
                                 orientation='h',
                                 x='Total_Assets',y='Party', color="Party",
+                                hover_name='Party',
                                 labels={
                                         "Total_Assets": "Total Assets (in Rs.)",
                                         "Party": "Political Parties"
@@ -531,9 +569,10 @@ with asset_1:
 with asset_2:
     fig_party_asset_buble = px.scatter(df_selected.filter(
                                         (pl.col('Party').is_in(Major_Parties)) 
-                                        ).to_pandas(),
+                                        ).collect().to_pandas(),
                                         x = 'Party',
                                         y = 'Total_Assets',
+                                        hover_name='Party',
                                         color = 'Party', # will display dots next to the boxes 
                                         labels={
                                                     "Total_Assets": "Total Assets (in Rs) of Candidate",
@@ -555,7 +594,7 @@ with asset_2:
 
 ############################## ASSET CRIME BUBBLE PLOT ##############################
 
-fig_crime_asset_buble = px.scatter(df_selected.filter(pl.col('Party').is_in(Major_Parties)).to_pandas(),
+fig_crime_asset_buble = px.scatter(df_selected.filter(pl.col('Party').is_in(Major_Parties)).collect().to_pandas(),
                                     x='Criminal_Case',y='Total_Assets', color="Party",
                                     hover_name="Party",
                                     # size = 'Total_Assets',
@@ -596,7 +635,7 @@ with Const_2:
 ############################## EDUCATION BUBBLE PLOT ##############################
 
 fig__edu_crime_buble = px.scatter(df_selected.filter((pl.col('Party').is_in(Major_Parties)) &
-                                                     (pl.col('Criminal_Case') > 0)).to_pandas(),
+                                                     (pl.col('Criminal_Case') > 0)).collect().to_pandas(),
                                     x='Education',y='Criminal_Case', color="Party", size = "Total_Assets",
                                     hover_name="Party", opacity=0.5,
                                     labels={
