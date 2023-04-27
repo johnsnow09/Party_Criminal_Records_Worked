@@ -85,6 +85,7 @@ with st.sidebar:
     
     State_List = get_state_list()
     State_index = State_List.index('Delhi')
+    # st.write(State_index)
 
     State_Selected = st.selectbox(label="Select State",
                                   options = State_List,
@@ -195,7 +196,8 @@ with Const_2:
     font-size:38px !important;}
     </style>
     """, unsafe_allow_html=True)
-    st.markdown('<p class="big-font">Criminal Cases by Constituency Candidates</p>', unsafe_allow_html=True)
+    st.markdown(f'<p class="big-font">Criminal Cases by Constituency of {State_Selected}</p>', unsafe_allow_html=True)
+    # st.markdown(f'<center><p class="big-font">{State_Selected}</p></center>', unsafe_allow_html=True)
 
 
 
