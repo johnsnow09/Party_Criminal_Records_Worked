@@ -529,40 +529,59 @@ with Asset_mark_2:
 
 ############################## ASSET PLOTS ##############################
 
-asset_1,asset_2 = st.columns([5,4],gap = "small")
+asset_1,asset_2 = st.columns([2,1],gap = "small")
 
 with asset_1:    
-    fig_party_asset_sum = px.bar(df_selected.groupby(['Party']
-                                ).agg(pl.col('Total_Assets').sum()
-                                ).sort(by='Total_Assets',descending=True
-                                ).head(18).collect().to_pandas(),
-                                orientation='h',
-                                x='Total_Assets',y='Party', color="Party",
-                                hover_name='Party',
-                                labels={
-                                        "Total_Assets": "Total Assets (in Rs.)",
-                                        "Party": "Political Parties"
-                                    },
+    # fig_party_asset_sum = px.bar(df_selected.groupby(['Party']
+    #                             ).agg(pl.col('Total_Assets').sum()
+    #                             ).sort(by='Total_Assets',descending=True
+    #                             ).head(18).collect().to_pandas(),
+    #                             orientation='h',
+    #                             x='Total_Assets',y='Party', color="Party",
+    #                             hover_name='Party',
+    #                             labels={
+    #                                     "Total_Assets": "Total Assets (in Rs.)",
+    #                                     "Party": "Political Parties"
+    #                                 },
                             
-                            title=f'<b>Top 18 Political Parties with Highest Total Sum of Assets of candidates <br>from {State_Selected} in {Year_Selected} Elections</b>')
+    #                         title=f'<b>Top 18 Political Parties with Highest Total Sum of Assets of candidates <br>from {State_Selected} in {Year_Selected} Elections</b>')
+
+# converting above code to facet year
+    fig_party_asset_sum = px.bar(df.filter(pl.col('State') == State_Selected).groupby(['Party','Year']
+                                    ).agg(pl.col('Total_Assets').sum()
+                                    ).sort(by='Total_Assets',descending=True
+                                    ).head(18).collect().to_pandas(),
+                                    orientation='h',
+                                    x='Total_Assets',y='Party', color="Party",
+                                    facet_col="Year", facet_col_wrap=2,
+                                    hover_name='Party',
+                                    labels={
+                                            "Total_Assets": "Total Assets (in Rs.)",
+                                            "Party": "Political Parties"
+                                        },
+                                
+                                title=f'<b>Top 18 Political Parties with Highest Total Sum of Assets of candidates <br>from {State_Selected} in Elections</b>')
+
+                                        
+
 
     # fig_party_crime_sum.update_yaxes(autorange="reversed")
     fig_party_asset_sum.update_layout(title_font_size=18, height = 500, 
                                         showlegend=False
                                         )
-    fig_party_asset_sum.add_annotation(
-                                        showarrow=False,
-                                        text='Data Source: https://myneta.info/',
-                                        xanchor='right',
-                                        x=2,
-                                        xshift=575,
-                                        yanchor='bottom',
-                                        y=0.01 #,
-                                        # font=dict(
-                                        #     family="Courier New, monospace",
-                                        #     size=22,
-                                        #     color="#0000FF"
-                                    )
+    # fig_party_asset_sum.add_annotation(
+    #                                     showarrow=False,
+    #                                     text='Data Source: https://myneta.info/',
+    #                                     xanchor='right',
+    #                                     x=2,
+    #                                     xshift=575,
+    #                                     yanchor='bottom',
+    #                                     y=0.01 #,
+    #                                     # font=dict(
+    #                                     #     family="Courier New, monospace",
+    #                                     #     size=22,
+    #                                     #     color="#0000FF"
+    #                                 )
 
     st.plotly_chart(fig_party_asset_sum,use_container_width=True)
 
@@ -581,7 +600,7 @@ with asset_2:
                                                     "Party": "Political Parties"
                                                                     },
                                                             
-                                title=f'<b>Top 6 Political Parties with Individual <br>Total Asset Record points from {State_Selected} in {Year_Selected} Elections</b>'
+                                title=f'<b>Top 6 Political Parties with Individual <br>Total Asset Record points from {State_Selected} <br>in {Year_Selected} Elections</b>'
         ).update_layout(
         title_font_size=18, height = 500,
         showlegend = False
