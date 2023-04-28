@@ -24,7 +24,7 @@ def v_spacer(height, sb=False) -> None:
 ############### Custom Functions Ends ###############
 
 
-st.set_page_config(page_title="Political Parties Candidate Analysis",
+st.set_page_config(page_title="Political Parties Crime Record Analysis",
                     layout='wide',
                     initial_sidebar_state="expanded")
 
@@ -129,13 +129,13 @@ with st.sidebar:
 
 
 ############################## SIDEBAR DISCAILMER ##############################
-    v_spacer(4)
+    # v_spacer(1)
 
     st.write("*Disclaimer:* - This app is for **educational** Purpose only and to demonstrate the use of **Python & Polars**  \n   \
-             \n This app uses very small portion of data from myneta.info and aggregates it using **Polars Python** to handle **data processing** efficiently.   \n \
+             \n We do not guarantee for Authenticity of the data and would request you to do your own research.  \
+             \n It uses very small portion of data from https://myneta.info/ and aggregates using **Polars Python** to handle **data processing** efficiently.   \n \
              \n Data used in this **Web App** is from https://myneta.info/ which is maintained by **ADR**. \
-               \n Would request the viewers to visit https://myneta.info/ for more details and original content.  \
-            ")
+               \n Would request the viewers to visit https://myneta.info/ for more details and original content.")
 ############################## SIDEBAR DISCAILMER END ##############################
 
 
@@ -192,11 +192,12 @@ Major_Parties = (
 # By Constituency Text
 st.markdown("""---""")    
 
-Const_1,Const_2,Const_3 = st.columns([1,8,1],gap = "small")
+Const_1,Const_2,Const_3 = st.columns([1,8,1],gap = "large")
 
 with Const_2:
-    st.markdown("""<style>.big-font {
-    font-size:38px !important;}
+    st.markdown("""
+    <style>.big-font {
+    font-size:10px !important;}
     </style>
     """, unsafe_allow_html=True)
     st.markdown(f'<p class="big-font">Criminal Cases by Constituency of {State_Selected}</p>', unsafe_allow_html=True)
@@ -222,7 +223,7 @@ with cons_map_2:
                                                     # range_color = (0,12), 
                                                     color = "Criminal_Case",
                                                     hover_name='AC_NAME',
-                                                    hover_data=["Criminal_Case", "Total_Assets"],
+                                                    hover_data=["Criminal_Case", "Total_Assets"]
                                                     # hover_data = {'locations':False, # https://stackoverflow.com/questions/74614344/selecting-hover-on-plotly-choropleth-map
                                                     #               'Criminal_Case':True
                                                     #               }
@@ -234,7 +235,7 @@ with cons_map_2:
                                     paper_bgcolor = 'rgba(0, 0, 0, 0)',
                                     geo=dict(bgcolor= 'rgba(0,0,0,0)'), 
                                     # hoverlabel = {'bgcolor': 'rgba(0,0,0,0)'},
-                                    height = 580, width = 450,
+                                    height = 580, width = 450
                                     )
 
     # fig_choropleth_assembly = px.choropleth_mapbox(
@@ -524,7 +525,8 @@ with plt1_right:
 
 
 
-st.markdown("""---""")    
+# st.markdown("""---""")    
+st.divider()
 
 Asset_mark_1,Asset_mark_2,Asset_mark_3 = st.columns([1,8,1],gap = "small")
 
@@ -534,7 +536,6 @@ with Asset_mark_2:
     </style>
     """, unsafe_allow_html=True)
     st.markdown('<p class="big-font">Sum of Total Asset of Candidates from each Party</p>', unsafe_allow_html=True)
-
 
 
 
@@ -560,7 +561,7 @@ with asset_1:
 
 # converting above code to facet year
     fig_party_asset_sum = px.bar(df.filter(pl.col('State') == State_Selected).groupby(['Party','Year']
-                                    ).agg(pl.col('Total_Assets').sum()
+                                    ).agg(pl.col('Total_Assets').sum()/10**7
                                     ).sort(by='Total_Assets',descending=True
                                     ).head(18).collect().to_pandas(),
                                     orientation='h',
@@ -568,7 +569,7 @@ with asset_1:
                                     facet_col="Year", facet_col_wrap=2,
                                     hover_name='Party',
                                     labels={
-                                            "Total_Assets": "Total Assets (in Rs.)",
+                                            "Total_Assets": "Total Assets (in Crore Rs.)",
                                             "Party": "Political Parties"
                                         },
                                 
@@ -581,6 +582,8 @@ with asset_1:
     fig_party_asset_sum.update_layout(title_font_size=18, height = 500, 
                                         showlegend=False
                                         )
+    # fig_party_asset_sum.update_traces(hovertemplate= 'Rs. %{x:.2f}')
+
     # fig_party_asset_sum.add_annotation(
     #                                     showarrow=False,
     #                                     text='Data Source: https://myneta.info/',
@@ -667,24 +670,84 @@ with Const_2:
 
 ############################## EDUCATION BUBBLE PLOT ##############################
 
-fig__edu_crime_buble = px.scatter(df_selected.filter((pl.col('Party').is_in(Major_Parties)) &
-                                                     (pl.col('Criminal_Case') > 0)).collect().to_pandas(),
-                                    x='Education',y='Criminal_Case', color="Party", size = "Total_Assets",
-                                    hover_name="Party", opacity=0.5,
-                                    labels={
-                                            "Criminal_Case": "Total Criminal Cases",
-                                            "Party": "Political Parties",
-                                            "Total_Assets": "Total Assets (in Rs) of Candidate"
-                                        },
+# fig__edu_crime_buble = px.scatter(df_selected.filter((pl.col('Party').is_in(Major_Parties)) &
+#                                                      (pl.col('Criminal_Case') > 0)).collect().to_pandas(),
+#                                     x='Education',y='Criminal_Case', color="Party", size = "Total_Assets",
+#                                     hover_name="Party", opacity=0.5,
+#                                     labels={
+#                                             "Criminal_Case": "Total Criminal Cases",
+#                                             "Party": "Political Parties",
+#                                             "Total_Assets": "Total Assets (in Rs) of Candidate"
+#                                         },
                         
-                        title=f'<b>Criminal Cases of Top 6 Political Parties by Education(Size wrt to Total Assets) from {State_Selected} in {Year_Selected} Elections</b>')
+#                         title=f'<b>Criminal Cases of Top 6 Political Parties by Education(Size wrt to Total Assets) from {State_Selected} in {Year_Selected} Elections</b>')
 
-# fig_party_crime_sum.update_yaxes(autorange="reversed")
-fig__edu_crime_buble.update_layout(title_font_size=18, height = 500
-                                    # showlegend=False
-                                    )
 
-st.plotly_chart(fig__edu_crime_buble,use_container_width=True)
+# fig__edu_crime_buble.update_layout(title_font_size=18, height = 500
+#                                     # showlegend=False
+#                                     )
+
+edu_bub_1,edu_bub_2 = st.columns([7,1],gap = "small")
+
+with edu_bub_2:
+    edu_option = st.radio("Facet by Education ?",options=['No','Yes'])
+
+with edu_bub_1:
+    if edu_option == "No":
+
+        fig__edu_crime_buble = px.scatter(df_selected.filter((pl.col('Party').is_in(Major_Parties)) &
+                                                            (pl.col('Criminal_Case') > 0)).collect().to_pandas(),
+                                            x = 'Criminal_Case', y = 'Total_Assets', color='Education', size='Criminal_Case',
+                                            facet_col='Party', facet_col_wrap=3, opacity=0.6,
+                                            labels={
+                                                    "Criminal_Case": "Criminal Cases",
+                                                    "Party": "Political Parties",
+                                                    "Total_Assets": "Total Assets (in Rs)"
+                                                },
+                                            # from: https://plotly.com/python/facet-plots/?_gl=1*queipu*_ga*MTU0Nzk1NDk2NC4xNjgyMTYyMDYz*_ga_6G7EE0JNSC*MTY4MjY3NjAzOC4yOC4wLjE2ODI2NzYwNDUuMC4wLjA.#controlling-facet-ordering
+                                            category_orders={"Education": ["Doctorate","Post Graduate", "Graduate", "Graduate Professional", 
+                                                                        "12th Pass","10th Pass","8th Pass","5th Pass","Others","Literate"
+                                                                        "Illiterate","Not Given"]},
+                                
+                                title=f'<b>Criminal Cases of Top 6 Political Parties by Education(Size wrt to Criminal Cases) from {State_Selected} in {Year_Selected} Elections</b>'
+                                )
+
+
+        fig__edu_crime_buble.update_layout(title_font_size=18, height = 600
+                                            # showlegend=False
+                                            # plot_bgcolor = 'rgba(0, 0, 0, 0)',
+                                            # paper_bgcolor = 'rgba(0, 0, 0, 0)'
+                                            )
+
+    if edu_option == "Yes":
+
+        fig__edu_crime_buble = px.scatter(df_selected.filter((pl.col('Party').is_in(Major_Parties)) &
+                                                            (pl.col('Criminal_Case') > 0)).collect().to_pandas(),
+                                            x = 'Criminal_Case', y = 'Total_Assets', color='Party', size='Criminal_Case',
+                                            facet_col='Education', facet_col_wrap=3, opacity=0.6,
+                                            labels={
+                                                    "Criminal_Case": "Criminal Cases",
+                                                    "Party": "Political Parties",
+                                                    "Total_Assets": "Total Assets (in Rs)"
+                                                },
+                                            # from: https://plotly.com/python/facet-plots/?_gl=1*queipu*_ga*MTU0Nzk1NDk2NC4xNjgyMTYyMDYz*_ga_6G7EE0JNSC*MTY4MjY3NjAzOC4yOC4wLjE2ODI2NzYwNDUuMC4wLjA.#controlling-facet-ordering
+                                            category_orders={"Education": ["Doctorate","Post Graduate", "Graduate", "Graduate Professional", 
+                                                                        "12th Pass","10th Pass","8th Pass","5th Pass","Others","Literate"
+                                                                        "Illiterate","Not Given"]},
+                                
+                                title=f'<b>Criminal Cases of Top 6 Political Parties by Education(Size wrt to Criminal Cases) from {State_Selected} in {Year_Selected} Elections</b>'
+                                )
+
+
+        fig__edu_crime_buble.update_layout(title_font_size=18, height = 700
+                                            # showlegend=False
+                                            # plot_bgcolor = 'rgba(0, 0, 0, 0)',
+                                            # paper_bgcolor = 'rgba(0, 0, 0, 0)'
+                                            )
+
+    st.plotly_chart(fig__edu_crime_buble,use_container_width=True)
+
+
 
 
 ############################## EDUCATION BUBBLE PLOT DONE ##############################
@@ -702,9 +765,9 @@ _1,box_left,_2 = st.columns([1,4,1],gap = "small")
 
 with box_left:
     st.write("*Disclaimer:* - This app is for **educational** Purpose only and to demonstrate the use of **Python & Polars**  \n   \
-             \n This app uses very small portion of data from myneta.info and aggregates it using **Polars Python** to handle **data processing** efficiently.   \n \
+             \n We do not guarantee for Authenticity of the data and would request you to do your own research.  \
+             \n It uses very small portion of data from https://myneta.info/ and aggregates using **Polars Python** to handle **data processing** efficiently.   \n \
              \n Data used in this **Web App** is from https://myneta.info/ which is maintained by **ADR**. \
-               \n Would request the viewers to visit https://myneta.info/ for more details and original content.  \
-            ")
+               \n Would request the viewers to visit https://myneta.info/ for more details and original content.")
     
 ############################## DISCALIMER DONE ##############################
