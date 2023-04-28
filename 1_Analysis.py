@@ -150,6 +150,9 @@ df_selected = df.filter((pl.col('State') == State_Selected) &
 
 
 final_shp_trimmed = final_shp_export[(final_shp_export.State == State_Selected) & (final_shp_export.Year.isin(Year_Selected))]
+Top_constituency_df =  final_shp_trimmed[['AC_NAME','Criminal_Case']].nlargest(n = 1, columns='Criminal_Case')
+Top_constituency_name = Top_constituency_df['AC_NAME'].item()
+Top_constituency_crime = Top_constituency_df['Criminal_Case'].item()
 ############################## FILTERED DATA DONE ##############################    
 
 
@@ -203,49 +206,58 @@ with Const_2:
 
 ############################## CONSTITUENCY PLOT ##############################
 
-fig_choropleth_assembly = px.choropleth(
-                                                data_frame= final_shp_trimmed,
-                                                geojson=final_shp_trimmed.__geo_interface__,
-                                                locations=final_shp_trimmed.index.astype(str),
-                                                color_continuous_scale="magma",
-                                                # range_color = (0,12), 
-                                                color = "Criminal_Case",
-                                                hover_name='AC_NAME',
-                                                hover_data=["Criminal_Case", "Total_Assets"]
-                                                # hover_data = {'locations':False, # https://stackoverflow.com/questions/74614344/selecting-hover-on-plotly-choropleth-map
-                                                #               'Criminal_Case':True
-                                                #               }
-                                                )
+cons_map_1,cons_map_2 = st.columns([1,6], gap="small")
 
-fig_choropleth_assembly.update_geos(fitbounds="locations", visible=False
-                                    ).update_layout(
-                                paper_bgcolor = 'rgba(0, 0, 0, 0)',
-                                geo=dict(bgcolor= 'rgba(0,0,0,0)'), 
-                                # hoverlabel = {'bgcolor': 'rgba(0,0,0,0)'},
-                                height = 500, width = 400,
-                                )
+with cons_map_1:
+    v_spacer(8)
 
-# fig_choropleth_assembly = px.choropleth_mapbox(
-#                                                 data_frame= final_shp_trimmed,
-#                                                 geojson=final_shp_trimmed.__geo_interface__,
-#                                                 locations=final_shp_trimmed.index.astype(str),
-#                                                 color="Criminal_Case",
-#                                                 color_continuous_scale="Viridis",
-#                                                 center=dict(lat=25.9644, lon=85.2722),
-#                                                 mapbox_style="open-street-map",
-#                                                 zoom=6,
-#                                                 hover_name='AC_NAME')
+    st.write(f"{Top_constituency_name} with total {Top_constituency_crime} Criminal Cases by all candidates is at the top position of constituencies.")
 
-st.plotly_chart(fig_choropleth_assembly,use_container_width=True)
+with cons_map_2:
+    fig_choropleth_assembly = px.choropleth(
+                                                    data_frame= final_shp_trimmed,
+                                                    geojson=final_shp_trimmed.__geo_interface__,
+                                                    locations=final_shp_trimmed.index.astype(str),
+                                                    color_continuous_scale="magma",
+                                                    # range_color = (0,12), 
+                                                    color = "Criminal_Case",
+                                                    hover_name='AC_NAME',
+                                                    hover_data=["Criminal_Case", "Total_Assets"],
+                                                    # hover_data = {'locations':False, # https://stackoverflow.com/questions/74614344/selecting-hover-on-plotly-choropleth-map
+                                                    #               'Criminal_Case':True
+                                                    #               }
+                                                    # title=f'{Top_constituency} is the Top Constituency'
+                                                    )
+
+    fig_choropleth_assembly.update_geos(fitbounds="locations", visible=False
+                                        ).update_layout(
+                                    paper_bgcolor = 'rgba(0, 0, 0, 0)',
+                                    geo=dict(bgcolor= 'rgba(0,0,0,0)'), 
+                                    # hoverlabel = {'bgcolor': 'rgba(0,0,0,0)'},
+                                    height = 580, width = 450,
+                                    )
+
+    # fig_choropleth_assembly = px.choropleth_mapbox(
+    #                                                 data_frame= final_shp_trimmed,
+    #                                                 geojson=final_shp_trimmed.__geo_interface__,
+    #                                                 locations=final_shp_trimmed.index.astype(str),
+    #                                                 color="Criminal_Case",
+    #                                                 color_continuous_scale="Viridis",
+    #                                                 center=dict(lat=25.9644, lon=85.2722),
+    #                                                 mapbox_style="open-street-map",
+    #                                                 zoom=6,
+    #                                                 hover_name='AC_NAME')
+
+    st.plotly_chart(fig_choropleth_assembly,use_container_width=True)
 
 
 ############################### Exapnder for Constituency Bar plot ###############################
 # with st.expander("See explanation"):
 
-Const_option_1,Const_option_2 = st.columns([6,1],gap = "small")
+Const_option_1,Const_option_2 = st.columns([7,1],gap = "small")
 
 with Const_option_2:
-    input_constituency = st.radio("Select All Parties?", ["No","Yes"])
+    input_constituency = st.radio("Select All Parties?", ["No","Yes"], horizontal=True)
 
 with Const_option_1:
 
