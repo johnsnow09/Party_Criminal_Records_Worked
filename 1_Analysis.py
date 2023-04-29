@@ -24,14 +24,31 @@ def v_spacer(height, sb=False) -> None:
 ############### Custom Functions Ends ###############
 
 
+
+
+
+
+############### Setting Configuration ###############
+
 st.set_page_config(page_title="Political Parties Crime Record Analysis",
                     layout='wide',
                     initial_sidebar_state="expanded")
 
 
+# Setting configuration to diable plotly zoom in plots
+config = dict({'scrollZoom': False})
+
+############### Setting Configuration Ends ###############
+
+
+
+
+
 ############################## GET DATA ##############################
 # @st.cache
 # @st.cache_data
+
+# this is to read main data file
 @st.cache_resource
 def get_data():
     df = pl.scan_parquet('Elections_Data_Compiled.parquet')
@@ -40,6 +57,8 @@ def get_data():
 
 df = get_data()
 
+
+# this is to read shape file data
 @st.cache_resource
 def get_shape_data():
     final_shp_export = gp.read_file('shape_file_exported/final_shp_export.shp').rename(
@@ -49,6 +68,15 @@ def get_shape_data():
     return final_shp_export
 
 final_shp_export = get_shape_data()
+
+
+# this will get all india top 50 parties for latest election
+@st.cache_resource
+def get_data_top_parties():
+    return pl.scan_csv('For_Analysis_in_R.csv')
+
+df_ind = get_data_top_parties()
+    
 ############################## DATA DONE ##############################
 
 
@@ -183,137 +211,8 @@ Major_Parties = (
     .to_list()
 )
 
-
 ############################## USEFUL AGGREGATIONS & LIST DONE ##############################
 
-
-
-
-# By Constituency Text
-st.markdown("""---""")    
-
-Const_1,Const_2,Const_3 = st.columns([1,8,1],gap = "large")
-
-with Const_2:
-    st.markdown("""
-    <style>.big-font {
-    font-size:10px !important;}
-    </style>
-    """, unsafe_allow_html=True)
-    st.markdown(f'<p class="big-font">Criminal Cases by Constituency of {State_Selected}</p>', unsafe_allow_html=True)
-    # st.markdown(f'<center><p class="big-font">{State_Selected}</p></center>', unsafe_allow_html=True)
-
-
-
-############################## CONSTITUENCY PLOT ##############################
-
-cons_map_1,cons_map_2 = st.columns([1,6], gap="small")
-
-with cons_map_1:
-    v_spacer(8)
-
-    st.write(f"{Top_constituency_name} with total {Top_constituency_crime} Criminal Cases by all candidates is at the top position of constituencies.")
-
-with cons_map_2:
-    fig_choropleth_assembly = px.choropleth(
-                                                    data_frame= final_shp_trimmed,
-                                                    geojson=final_shp_trimmed.__geo_interface__,
-                                                    locations=final_shp_trimmed.index.astype(str),
-                                                    color_continuous_scale="magma",
-                                                    # range_color = (0,12), 
-                                                    color = "Criminal_Case",
-                                                    hover_name='AC_NAME',
-                                                    hover_data=["Criminal_Case", "Total_Assets"]
-                                                    # hover_data = {'locations':False, # https://stackoverflow.com/questions/74614344/selecting-hover-on-plotly-choropleth-map
-                                                    #               'Criminal_Case':True
-                                                    #               }
-                                                    # title=f'{Top_constituency} is the Top Constituency'
-                                                    )
-
-    fig_choropleth_assembly.update_geos(fitbounds="locations", visible=False
-                                        ).update_layout(
-                                    paper_bgcolor = 'rgba(0, 0, 0, 0)',
-                                    geo=dict(bgcolor= 'rgba(0,0,0,0)'), 
-                                    # hoverlabel = {'bgcolor': 'rgba(0,0,0,0)'},
-                                    height = 580, width = 450
-                                    )
-
-    # fig_choropleth_assembly = px.choropleth_mapbox(
-    #                                                 data_frame= final_shp_trimmed,
-    #                                                 geojson=final_shp_trimmed.__geo_interface__,
-    #                                                 locations=final_shp_trimmed.index.astype(str),
-    #                                                 color="Criminal_Case",
-    #                                                 color_continuous_scale="Viridis",
-    #                                                 center=dict(lat=25.9644, lon=85.2722),
-    #                                                 mapbox_style="open-street-map",
-    #                                                 zoom=6,
-    #                                                 hover_name='AC_NAME')
-
-    st.plotly_chart(fig_choropleth_assembly,use_container_width=True)
-
-
-############################### Exapnder for Constituency Bar plot ###############################
-# with st.expander("See explanation"):
-
-Const_option_1,Const_option_2 = st.columns([7,1],gap = "small")
-
-with Const_option_2:
-    input_constituency = st.radio("Select All Parties?", ["No","Yes"], horizontal=True)
-
-with Const_option_1:
-
-    if input_constituency == "Yes":
-        fig_const_crime_sum = px.bar(
-                                    df_selected.groupby(['Constituency','Party']
-                                        ).agg(pl.col('Criminal_Case').sum()
-                                        ).sort(by='Criminal_Case',descending=True
-                                        ).collect(
-                                        ).to_pandas(),
-                                    orientation='v',
-                                    barmode = 'stack', 
-                                    x='Constituency',y='Criminal_Case', color="Party",
-                                    hover_name="Constituency",
-                                    labels={
-                                            "Total_Assets": "Total Assets (in Rs.)",
-                                            "Party": "Political Parties"
-                                        },
-                                    
-                                    title=f'<b>Constituencies with highest Criminal Cases Candidates from {State_Selected} in {Year_Selected} Elections</b>')
-
-    else:
-        fig_const_crime_sum = px.bar(
-                                    df_selected.filter(
-                                        pl.col('Party').is_in(Major_Parties)).groupby(['Constituency','Party']
-                                        ).agg(pl.col('Criminal_Case').sum()
-                                        ).sort(by='Criminal_Case',descending=True
-                                        ).collect(
-                                        ).to_pandas()
-                                        
-                                        ,
-                                    orientation='v',
-                                    barmode = 'stack', 
-                                    x='Constituency',y='Criminal_Case', color="Party",
-                                    hover_name="Constituency", 
-                                    
-                                    labels={
-                                            "Total_Assets": "Total Assets (in Rs.)",
-                                            "Party": "Political Parties"
-                                        },
-                                    
-                                    title=f'<b>Constituencies with highest Criminal Cases Candidates of Top 6 Parties from {State_Selected[0]} in {Year_Selected[0]} Elections</b>')
-                                    # title= " ".join('Constituencies with highest Criminal Cases Candidates of Top 6 Parties from', State_Selected[0], 'in', Year_Selected[0], 'Elections'))
-
-
-
-    fig_const_crime_sum.update_xaxes(autorange="reversed")
-    fig_const_crime_sum.update_layout(title_font_size=18, height = 600, 
-                                        # showlegend=False
-                                        )
-
-    st.plotly_chart(fig_const_crime_sum,use_container_width=True)
-
-
-############################## CONSTITUENCY PLOT DONE ##############################
 
 
 
@@ -370,7 +269,7 @@ with plt_box_1:
                                         #     color="#0000FF"
                                     )
 
-    st.plotly_chart(fig_party_crime_sum,use_container_width=True)
+    st.plotly_chart(fig_party_crime_sum,use_container_width=True, config = config)
 
 
 with plt_box_2:
@@ -410,7 +309,7 @@ with boxplt_2:
         # plot_bgcolor = 'white'
         )
 
-    st.plotly_chart(fig_party_crime_box,use_container_width=True)
+    st.plotly_chart(fig_party_crime_box,use_container_width=True, config = config)
 
 with boxplt_1:
     v_spacer(9)
@@ -457,7 +356,7 @@ with plt3_box_1:
                                         showlegend=False
                                         )
 
-    st.plotly_chart(fig_cases_count_party_facet,use_container_width=True)
+    st.plotly_chart(fig_cases_count_party_facet,use_container_width=True, config = config)
 
 ############################## FACET PLOT DONE ##############################
 
@@ -513,13 +412,13 @@ fig_party_avg_cases.update_layout(title_font_size=16, height = 600,
 plt1_left,plt1_mid,plt1_right = st.columns([1,1,1],gap = "small")
 
 with plt1_left:
-    st.plotly_chart(fig_party_cand_count,use_container_width=True)
+    st.plotly_chart(fig_party_cand_count,use_container_width=True, config = config)
 
 with plt1_mid:
-    st.plotly_chart(fig_party_crime_sum2,use_container_width=True)
+    st.plotly_chart(fig_party_crime_sum2,use_container_width=True, config = config)
 
 with plt1_right:
-    st.plotly_chart(fig_party_avg_cases,use_container_width=True)
+    st.plotly_chart(fig_party_avg_cases,use_container_width=True, config = config)
 
 ############################## 3 PLOTS DONE ##############################
 
@@ -598,7 +497,7 @@ with asset_1:
     #                                     #     color="#0000FF"
     #                                 )
 
-    st.plotly_chart(fig_party_asset_sum,use_container_width=True)
+    st.plotly_chart(fig_party_asset_sum,use_container_width=True, config = config)
 
 
 
@@ -621,7 +520,7 @@ with asset_2:
         showlegend = False
         )
 
-    st.plotly_chart(fig_party_asset_buble,use_container_width=True)
+    st.plotly_chart(fig_party_asset_buble,use_container_width=True, config = config)
 
 ############################## ASSET PLOTS DONE ##############################
 
@@ -647,7 +546,7 @@ fig_crime_asset_buble.update_layout(title_font_size=18, height = 500,
                                     # showlegend=False
                                     )
 
-st.plotly_chart(fig_crime_asset_buble,use_container_width=True)
+st.plotly_chart(fig_crime_asset_buble,use_container_width=True, config = config)
 
 ############################## ASSET CRIME BUBBLE PLOT DONE ##############################
 
@@ -745,12 +644,158 @@ with edu_bub_1:
                                             # paper_bgcolor = 'rgba(0, 0, 0, 0)'
                                             )
 
-    st.plotly_chart(fig__edu_crime_buble,use_container_width=True)
-
-
-
+    st.plotly_chart(fig__edu_crime_buble,use_container_width=True, config = config)
 
 ############################## EDUCATION BUBBLE PLOT DONE ##############################
+
+
+
+
+
+
+############################## ALL INDIA BUBBLE PLOT ##############################
+
+# fig__all_ind_parties_buble = px.strip(df_ind.filter((pl.col('Criminal_Case') > 0)).collect().to_pandas(),
+#             x = 'Criminal_Case', y = 'Party', color='State', 
+#             title = "Top 50 Parties in India by highest Criminal Records of Candidates in Latest State Elections"
+#             ).update_layout(height = 1400).update_yaxes(type='category', categoryorder='max ascending'
+#                                                         ).update_traces(jitter = 1, opacity = 0.7)
+
+# st.plotly_chart(fig__all_ind_parties_buble,use_container_width=True, config = config)
+
+############################## ALL INDIA BUBBLE PLOT DONE ##############################
+
+
+
+
+# By Constituency Text
+st.markdown("""---""")    
+
+Const_1,Const_2,Const_3 = st.columns([1,8,1],gap = "large")
+
+with Const_2:
+    st.markdown("""
+    <style>.big-font {
+    font-size:38px !important;}
+    </style>
+    """, unsafe_allow_html=True)
+    
+    st.markdown(f'<p class="big-font">Criminal Cases by Constituency of {State_Selected}</p>', unsafe_allow_html=True)
+    # st.markdown(f'<center><p class="big-font">{State_Selected}</p></center>', unsafe_allow_html=True)
+
+
+
+############################## CONSTITUENCY PLOT ##############################
+
+cons_map_1,cons_map_2 = st.columns([1,6], gap="small")
+
+with cons_map_1:
+    v_spacer(12)
+
+    st.write(f"{Top_constituency_name} with total {Top_constituency_crime} Criminal Cases by all candidates is at the top position of constituencies.")
+
+with cons_map_2:
+    fig_choropleth_assembly = px.choropleth(
+                                                    data_frame= final_shp_trimmed,
+                                                    geojson=final_shp_trimmed.__geo_interface__,
+                                                    locations=final_shp_trimmed.index.astype(str),
+                                                    color_continuous_scale="magma",
+                                                    # range_color = (0,12), 
+                                                    color = "Criminal_Case",
+                                                    hover_name='AC_NAME',
+                                                    hover_data=["Criminal_Case", "Total_Assets"]
+                                                    # hover_data = {'locations':False, # https://stackoverflow.com/questions/74614344/selecting-hover-on-plotly-choropleth-map
+                                                    #               'Criminal_Case':True
+                                                    #               }
+                                                    # title=f'{Top_constituency} is the Top Constituency'
+                                                    )
+
+    fig_choropleth_assembly.update_geos(fitbounds="locations", visible=False
+                                        ).update_layout(
+                                    paper_bgcolor = 'rgba(0, 0, 0, 0)',
+                                    geo=dict(bgcolor= 'rgba(0,0,0,0)'), 
+                                    # hoverlabel = {'bgcolor': 'rgba(0,0,0,0)'},
+                                    height = 580, width = 450
+                                    )
+
+    # fig_choropleth_assembly = px.choropleth_mapbox(
+    #                                                 data_frame= final_shp_trimmed,
+    #                                                 geojson=final_shp_trimmed.__geo_interface__,
+    #                                                 locations=final_shp_trimmed.index.astype(str),
+    #                                                 color="Criminal_Case",
+    #                                                 color_continuous_scale="Viridis",
+    #                                                 center=dict(lat=25.9644, lon=85.2722),
+    #                                                 mapbox_style="open-street-map",
+    #                                                 zoom=6,
+    #                                                 hover_name='AC_NAME')
+
+    st.plotly_chart(fig_choropleth_assembly,use_container_width=True, config = config)
+
+
+############################### Exapnder for Constituency Bar plot ###############################
+# with st.expander("See explanation"):
+
+Const_option_1,Const_option_2 = st.columns([7,1],gap = "small")
+
+with Const_option_2:
+    input_constituency = st.radio("Select All Parties?", ["No","Yes"], horizontal=True)
+
+with Const_option_1:
+
+    if input_constituency == "Yes":
+        fig_const_crime_sum = px.bar(
+                                    df_selected.groupby(['Constituency','Party']
+                                        ).agg(pl.col('Criminal_Case').sum()
+                                        ).sort(by='Criminal_Case',descending=True
+                                        ).collect(
+                                        ).to_pandas(),
+                                    orientation='v',
+                                    barmode = 'stack', 
+                                    x='Constituency',y='Criminal_Case', color="Party",
+                                    hover_name="Constituency",
+                                    labels={
+                                            "Total_Assets": "Total Assets (in Rs.)",
+                                            "Party": "Political Parties"
+                                        },
+                                    
+                                    title=f'<b>Constituencies with highest Criminal Cases Candidates from {State_Selected} in {Year_Selected} Elections</b>')
+
+    else:
+        fig_const_crime_sum = px.bar(
+                                    df_selected.filter(
+                                        pl.col('Party').is_in(Major_Parties)).groupby(['Constituency','Party']
+                                        ).agg(pl.col('Criminal_Case').sum()
+                                        ).sort(by='Criminal_Case',descending=True
+                                        ).collect(
+                                        ).to_pandas()
+                                        
+                                        ,
+                                    orientation='v',
+                                    barmode = 'stack', 
+                                    x='Constituency',y='Criminal_Case', color="Party",
+                                    hover_name="Constituency", 
+                                    
+                                    labels={
+                                            "Total_Assets": "Total Assets (in Rs.)",
+                                            "Party": "Political Parties"
+                                        },
+                                    
+                                    title=f'<b>Constituencies with highest Criminal Cases Candidates of Top 6 Parties from {State_Selected[0]} in {Year_Selected[0]} Elections</b>')
+                                    # title= " ".join('Constituencies with highest Criminal Cases Candidates of Top 6 Parties from', State_Selected[0], 'in', Year_Selected[0], 'Elections'))
+
+
+
+    fig_const_crime_sum.update_xaxes(autorange="reversed")
+    fig_const_crime_sum.update_layout(title_font_size=18, height = 600, 
+                                        # showlegend=False
+                                        )
+
+    st.plotly_chart(fig_const_crime_sum,use_container_width=True, config = config)
+
+
+############################## CONSTITUENCY PLOT DONE ##############################
+
+
 
 
 
