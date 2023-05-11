@@ -586,15 +586,9 @@ with Const_2:
 #                                     # showlegend=False
 #                                     )
 
-edu_bub_1,edu_bub_2 = st.columns([7,1],gap = "small")
+tab11, tab21 = st.tabs(["🗃 Facet By Political Party","📈 Facet By Education"])
 
-with edu_bub_2:
-    edu_option = st.radio("Facet by Education ?",options=['No','Yes'])
-
-with edu_bub_1:
-    if edu_option == "No":
-
-        fig__edu_crime_buble = px.scatter(df_selected.filter((pl.col('Party').is_in(Major_Parties)) &
+fig__edu_crime_buble = px.scatter(df_selected.filter((pl.col('Party').is_in(Major_Parties)) &
                                                             (pl.col('Criminal_Case') > 0)).collect().to_pandas(),
                                             x = 'Criminal_Case', y = 'Total_Assets', color='Education', size='Criminal_Case',
                                             facet_col='Party', facet_col_wrap=3, opacity=0.6,
@@ -609,18 +603,15 @@ with edu_bub_1:
                                                                         "Illiterate","Not Given"]},
                                 
                                 title=f'<b>Criminal Cases of Top 6 Political Parties by Education(Size wrt to Criminal Cases) from {State_Selected} in {Year_Selected} Elections</b>'
-                                )
-
-
-        fig__edu_crime_buble.update_layout(title_font_size=18, height = 600
+                                ).update_layout(title_font_size=18, height = 600
                                             # showlegend=False
                                             # plot_bgcolor = 'rgba(0, 0, 0, 0)',
                                             # paper_bgcolor = 'rgba(0, 0, 0, 0)'
                                             )
 
-    if edu_option == "Yes":
+tab11.plotly_chart(fig__edu_crime_buble,use_container_width=True, config = config)
 
-        fig__edu_crime_buble = px.scatter(df_selected.filter((pl.col('Party').is_in(Major_Parties)) &
+fig__edu_crime_buble_facet2 = px.scatter(df_selected.filter((pl.col('Party').is_in(Major_Parties)) &
                                                             (pl.col('Criminal_Case') > 0)).collect().to_pandas(),
                                             x = 'Criminal_Case', y = 'Total_Assets', color='Party', size='Criminal_Case',
                                             facet_col='Education', facet_col_wrap=3, opacity=0.6,
@@ -635,16 +626,14 @@ with edu_bub_1:
                                                                         "Illiterate","Not Given"]},
                                 
                                 title=f'<b>Criminal Cases of Top 6 Political Parties by Education(Size wrt to Criminal Cases) from {State_Selected} in {Year_Selected} Elections</b>'
-                                )
-
-
-        fig__edu_crime_buble.update_layout(title_font_size=18, height = 700
+                                ).update_layout(title_font_size=18, height = 700
                                             # showlegend=False
                                             # plot_bgcolor = 'rgba(0, 0, 0, 0)',
                                             # paper_bgcolor = 'rgba(0, 0, 0, 0)'
                                             )
 
-    st.plotly_chart(fig__edu_crime_buble,use_container_width=True, config = config)
+tab21.plotly_chart(fig__edu_crime_buble_facet2,use_container_width=True, config = config)
+
 
 ############################## EDUCATION BUBBLE PLOT DONE ##############################
 
@@ -735,33 +724,9 @@ with cons_map_2:
 ############################### Exapnder for Constituency Bar plot ###############################
 # with st.expander("See explanation"):
 
-Const_option_1,Const_option_2 = st.columns([7,1],gap = "small")
+tab21, tab22 = st.tabs(["🗃 Top 6 Political Parties","📈 All Political Parties"])
 
-with Const_option_2:
-    input_constituency = st.radio("Select All Parties?", ["No","Yes"], horizontal=True)
-
-with Const_option_1:
-
-    if input_constituency == "Yes":
-        fig_const_crime_sum = px.bar(
-                                    df_selected.groupby(['Constituency','Party']
-                                        ).agg(pl.col('Criminal_Case').sum()
-                                        ).sort(by='Criminal_Case',descending=True
-                                        ).collect(
-                                        ).to_pandas(),
-                                    orientation='v',
-                                    barmode = 'stack', 
-                                    x='Constituency',y='Criminal_Case', color="Party",
-                                    hover_name="Constituency",
-                                    labels={
-                                            "Total_Assets": "Total Assets (in Rs.)",
-                                            "Party": "Political Parties"
-                                        },
-                                    
-                                    title=f'<b>Constituencies with highest Criminal Cases Candidates from {State_Selected} in {Year_Selected} Elections</b>')
-
-    else:
-        fig_const_crime_sum = px.bar(
+fig_const_crime_sum = px.bar(
                                     df_selected.filter(
                                         pl.col('Party').is_in(Major_Parties)).groupby(['Constituency','Party']
                                         ).agg(pl.col('Criminal_Case').sum()
@@ -780,17 +745,37 @@ with Const_option_1:
                                             "Party": "Political Parties"
                                         },
                                     
-                                    title=f'<b>Constituencies with highest Criminal Cases Candidates of Top 6 Parties from {State_Selected[0]} in {Year_Selected[0]} Elections</b>')
+                                    title=f'<b>Constituencies with highest Criminal Cases Candidates of Top 6 Parties from {State_Selected[0]} in {Year_Selected[0]} Elections</b>'
                                     # title= " ".join('Constituencies with highest Criminal Cases Candidates of Top 6 Parties from', State_Selected[0], 'in', Year_Selected[0], 'Elections'))
 
-
-
-    fig_const_crime_sum.update_xaxes(autorange="reversed")
-    fig_const_crime_sum.update_layout(title_font_size=18, height = 600, 
+).update_xaxes(autorange="reversed").update_layout(title_font_size=18, height = 600, 
                                         # showlegend=False
                                         )
 
-    st.plotly_chart(fig_const_crime_sum,use_container_width=True, config = config)
+tab21.plotly_chart(fig_const_crime_sum,use_container_width=True, config = config)
+
+
+fig_const_crime_sum_all = px.bar(
+                                    df_selected.groupby(['Constituency','Party']
+                                        ).agg(pl.col('Criminal_Case').sum()
+                                        ).sort(by='Criminal_Case',descending=True
+                                        ).collect(
+                                        ).to_pandas(),
+                                    orientation='v',
+                                    barmode = 'stack', 
+                                    x='Constituency',y='Criminal_Case', color="Party",
+                                    hover_name="Constituency",
+                                    labels={
+                                            "Total_Assets": "Total Assets (in Rs.)",
+                                            "Party": "Political Parties"
+                                        },
+                                    
+                                    title=f'<b>Constituencies with highest Criminal Cases Candidates from {State_Selected} in {Year_Selected} Elections</b>'
+).update_xaxes(autorange="reversed").update_layout(title_font_size=18, height = 600, 
+                                        # showlegend=False
+                                        )                                    
+
+tab22.plotly_chart(fig_const_crime_sum_all,use_container_width=True, config = config)
 
 
 ############################## CONSTITUENCY PLOT DONE ##############################
