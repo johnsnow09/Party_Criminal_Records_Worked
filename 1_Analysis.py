@@ -459,11 +459,11 @@ with asset_1:
     #                         title=f'<b>Top 18 Political Parties with Highest Total Sum of Assets of candidates <br>from {State_Selected} in {Year_Selected} Elections</b>')
 
 # converting above code to facet year
-    fig_party_asset_sum = px.bar(df.filter(pl.col('State') == State_Selected).groupby(['Party','Year']
+    fig_party_asset_sum = df.filter(pl.col('State') == State_Selected).groupby(['Party','Year']
                                     ).agg(pl.col('Total_Assets').sum()/10**7
                                     ).sort(by='Total_Assets',descending=True
-                                    ).head(18).collect().to_pandas(),
-                                    orientation='h',
+                                    ).head(18).collect().pipe( # to_pandas(),
+                                    px.bar(orientation='h',
                                     x='Total_Assets',y='Party', color="Party",
                                     facet_col="Year", facet_col_wrap=2,
                                     hover_name='Party',
@@ -472,7 +472,7 @@ with asset_1:
                                             "Party": "Political Parties"
                                         },
                                 
-                                title=f'<b>Top 18 Political Parties with Highest Total Sum of Assets of candidates <br>from {State_Selected} in Elections</b>')
+                                title=f'<b>Top 18 Political Parties with Highest Total Sum of Assets of candidates <br>from {State_Selected} in Elections</b>'))
 
                                         
 
