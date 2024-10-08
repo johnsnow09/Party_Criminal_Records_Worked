@@ -59,7 +59,7 @@ df = get_data()
 
 
 # this is to read shape file data
-@st.cache_resource
+# @st.cache_resource
 # def get_shape_data():
 #     final_shp_export = gp.read_file('shape_file_exported/final_shp_export.shp').rename(
 #                                                                             columns = {'Criminal_C':'Criminal_Case',
