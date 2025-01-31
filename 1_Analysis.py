@@ -51,7 +51,7 @@ config = dict({'scrollZoom': False})
 # this is to read main data file
 @st.cache_resource
 def get_data():
-    df = pl.scan_parquet('Elections_Data_Compiled.parquet')
+    df = pl.scan_parquet('Elections_Data_Compiled_latest_2025.parquet') # 'Elections_Data_Compiled.parquet'
     
     return df
 
